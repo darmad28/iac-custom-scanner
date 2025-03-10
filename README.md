@@ -57,15 +57,15 @@ gcloud config set project [PROJECT_ID]
 
 To build and push the Docker image, run:
 
-```gcloud builds submit --tag gcr.io/[PROJECT_ID]/knative-iac-analyzer```
+```gcloud builds submit --tag gcr.io/[PROJECT_ID]/iac-custom-scanner```
 
 ### Deploy to Cloud Run
 
 To deploy the application to Cloud Run, use the following command:
 
 ```
-gcloud run deploy knative-iac-analyzer \
-  --image gcr.io/[PROJECT_ID]/knative-iac-analyzer \
+gcloud run deploy iac-custom-scanner \
+  --image gcr.io/[PROJECT_ID]/iac-custom-scanner \
   --platform managed \
   --region [REGION] \
   --allow-unauthenticated
