@@ -49,7 +49,7 @@ The application will be available at http://localhost:8000.
 2. Authenticate with GCP:
 
 ```
-bashgcloud auth login
+gcloud auth login
 gcloud config set project [PROJECT_ID]
 ```
 
