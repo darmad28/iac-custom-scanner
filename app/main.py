@@ -5,6 +5,10 @@ import json
 
 app = FastAPI()
 
+# --- Anti-DDoS Security Constants ---
+
+MAX_FILE_SIZE = 2 * 1024 * 1024  # 2MB limit
+MAX_JSON_DEPTH = 10  # Maximum allowed depth for JSON
 
 # --- Pydantic MODELS ---
 
@@ -21,10 +25,23 @@ class IaCResourceModel(BaseModel):
     azure_specific: dict
 
 
-
 class IaCModel(BaseModel):
     resources: list[IaCResourceModel]
 
+
+# --- Anti-DDoS (JSON depth) Security Enhancement ---
+
+def check_json_depth(data, max_depth=MAX_JSON_DEPTH, current_depth=0):
+    """Prevent deeply nested JSON structures"""
+    if current_depth > max_depth:
+        raise ValueError("JSON structure too deeply nested.")
+
+    if isinstance(data, dict):
+        for value in data.values():
+            check_json_depth(value, max_depth, current_depth + 1)
+    elif isinstance(data, list):
+        for item in data:
+            check_json_depth(item, max_depth, current_depth + 1)
 
 # --- ANALYSIS FUNCTIONS ---
 
@@ -127,32 +144,34 @@ def analyze_iac_security(config_json):
 
 
 # --- ENDPOINT ---
-
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)):
     """Detect the type of JSON and apply the appropriate analysis."""
-
-    if not file.filename.endswith(".json"):
+    if file.content_type != "application/json":
         raise HTTPException(status_code=400, detail="Only JSON files are allowed.")
 
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large. Maximum allowed size is 2MB.")
+
     try:
-        content = json.loads(file.file.read().decode("utf-8"))
+        json_data = json.loads(content)
+        check_json_depth(json_data)  # Validate JSON depth
     except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="The file does not contain valid JSON.")
+        raise HTTPException(status_code=400, detail="Invalid JSON.")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     try:
-        validated_knative = KnativeConfigModel(**content)
-        result = analyze_knative_security(validated_knative.dict())
-        return PlainTextResponse(result)
+        validated_knative = KnativeConfigModel(**json_data)
+        return PlainTextResponse(analyze_knative_security(validated_knative.dict()))
     except ValidationError:
         pass
 
     try:
-        validated_iac = IaCModel(**content)
-        result = analyze_iac_security(validated_iac.dict())
-        return PlainTextResponse(result)
+        validated_iac = IaCModel(**json_data)
+        return PlainTextResponse(analyze_iac_security(validated_iac.dict()))
     except ValidationError:
         pass
 
-    raise HTTPException(status_code=400,
-                        detail="The file does not contain a valid structure for Knative or Infrastructure as Code JSON.")
+    raise HTTPException(status_code=400, detail="The file does not contain a valid structure for Knative or IaC JSON.")
