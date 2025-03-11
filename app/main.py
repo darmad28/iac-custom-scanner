@@ -12,7 +12,7 @@ MAX_JSON_DEPTH = 10  # Maximum allowed depth for JSON
 
 # --- Pydantic MODELS ---
 
-class KnativeConfigModel(BaseModel):
+class KubernetesResourceModel(BaseModel):
     apiVersion: str
     kind: str
     metadata: dict
@@ -45,7 +45,7 @@ def check_json_depth(data, max_depth=MAX_JSON_DEPTH, current_depth=0):
 
 # --- ANALYSIS FUNCTIONS ---
 
-def analyze_knative_security(config_json):
+def analyze_kubernetes_security(config_json):
     """Analyze security vulnerabilities in Knative"""
     vulnerabilities = []
 
@@ -58,33 +58,44 @@ def analyze_knative_security(config_json):
             "remediation": "Use a specific namespace for each application and apply RBAC controls."
         })
 
-    env_vars = config_json.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])[0].get("env", [])
-    for env_var in env_vars:
-        if "SECRET" in env_var["name"].upper() or "PASSWORD" in env_var["name"].upper():
+        # Locate containers in different structures
+    container_paths = [
+        config_json.get("spec", {}).get("template", {}).get("spec", {}).get("containers", []),  # Knative & Deployments
+        config_json.get("spec", {}).get("containers", []),  # Pods directos
+        config_json.get("podSpec", {}).get("containers", [])  # DaemonSets, StatefulSets
+    ]
+
+    # Find the first valid list of containers
+    containers = next((c for c in container_paths if c), [])
+
+    for container in containers:
+        env_vars = container.get("env", [])
+        for env_var in env_vars:
+            if "SECRET" in env_var["name"].upper() or "PASSWORD" in env_var["name"].upper():
+                vulnerabilities.append({
+                    "issue": f"Secret exposed in environment variable: {env_var['name']}",
+                    "severity": "HIGH",
+                    "explanation": "Credentials should not be stored in environment variables as they may be leaked in logs or extracted by attackers.",
+                    "remediation": "Use a secret manager like AWS Secrets Manager, HashiCorp Vault, or Kubernetes Secrets."
+                })
+            elif "PUBLIC_BUCKET" in env_var["name"].upper() or "http://public-bucket" in env_var.get("value", ""):
+                vulnerabilities.append({
+                    "issue": f"Storage bucket publicly exposed: {env_var['value']}",
+                    "severity": "HIGH",
+                    "explanation": "Exposing buckets publicly may allow unauthorized access to sensitive data.",
+                    "remediation": "Configure restrictive IAM policies and avoid public access to sensitive data."
+                })
+
+        security_context = container.get("securityContext", {})
+        if security_context.get("runAsUser", 1) == 0 or security_context.get("privileged", False):
             vulnerabilities.append({
-                "issue": f"Secret exposed in environment variable: {env_var['name']}",
+                "issue": "Container running with elevated privileges or as root",
                 "severity": "HIGH",
-                "explanation": "Credentials should not be stored in environment variables as they may be leaked in logs or extracted by attackers.",
-                "remediation": "Use a secret manager like AWS Secrets Manager, HashiCorp Vault, or Kubernetes Secrets."
-            })
-        elif "PUBLIC_BUCKET" in env_var["name"].upper() or "http://public-bucket" in env_var.get("value", ""):
-            vulnerabilities.append({
-                "issue": f"Storage bucket publicly exposed: {env_var['value']}",
-                "severity": "HIGH",
-                "explanation": "Exposing buckets publicly may allow unauthorized access to sensitive data.",
-                "remediation": "Configure restrictive IAM policies and avoid public access to sensitive data."
+                "explanation": "Running a container as root increases the risk of privilege escalation in case of exploitation.",
+                "remediation": "Set 'runAsUser' with a non-root UID and avoid privileged mode in containers."
             })
 
-    security_context = config_json.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])[0].get(
-        "securityContext", {})
-    if security_context.get("runAsUser", 1) == 0 or security_context.get("privileged", False):
-        vulnerabilities.append({
-            "issue": "Container running with elevated privileges or as root",
-            "severity": "HIGH",
-            "explanation": "Running a container as root increases the risk of privilege escalation in case of exploitation.",
-            "remediation": "Set 'runAsUser' with a non-root UID and avoid privileged mode in containers."
-        })
-
+    # Format the results
     result = ""
     for vuln in vulnerabilities:
         result += f"**Issue**: {vuln['issue']}\n**Severity**: {vuln['severity']}\n**Explanation**: {vuln['explanation']}\n**Remediation**: {vuln['remediation']}\n\n"
@@ -163,8 +174,8 @@ async def analyze(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=str(e))
 
     try:
-        validated_knative = KnativeConfigModel(**json_data)
-        return PlainTextResponse(analyze_knative_security(validated_knative.dict()))
+        validated_kubernetes = KubernetesResourceModel(**json_data)
+        return PlainTextResponse(analyze_kubernetes_security(validated_kubernetes.dict()))
     except ValidationError:
         pass
 
@@ -174,4 +185,4 @@ async def analyze(file: UploadFile = File(...)):
     except ValidationError:
         pass
 
-    raise HTTPException(status_code=400, detail="The file does not contain a valid structure for Knative or IaC JSON.")
+    raise HTTPException(status_code=400, detail="The file does not contain a valid structure for Kubernetes or IaC JSON.")
