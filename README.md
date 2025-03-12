@@ -143,6 +143,50 @@ This command will output a Bearer token that you can use for the Authorization h
 If you receive a 403 Forbidden error, it means the user does not have the appropriate permissions. Ensure that the user is granted the roles/run.invoker permission for the service. This can be checked and modified by the Google Cloud project administrator.
 
 ## Examples
+* Scanning a valid JSON (Example 1 Kubernetes manifest)
+
+![Results example1](./images/json1-screenshot.jpg)
+
+* Scanning a valid JSON (Example 2 IAC)
+
+![Results example2](./images/json2-screenshot.jpg)
+
+* Security Exception 1: JSON too deep
+
+![Results toonested](./images/toonested-screenshot.jpg)
+
+* Security Exception 2: JSON too large
+
+![Results large file](./images/largefile-screenshot.jpg)
+
+* Security Exception 3: JSON with no valid format
+
+![Results bad format](./images/badformat-screenshot.jpg)
+
+* Security Exception 4: No JSON file (invalid)
+
+![Results invalid file](./images/invalid-screenshot.jpg)
+
+## ANNEX: Security Policies
+### Kubernetes manifest
+1. Using 'default' namespace. Severity MEDIUM
+2. Secret exposed in environment variable. Severity CRITICAL
+3. Storage bucket publicly exposed. Severity HIGH
+4. Container running with elevated privileges or as root. Severity HIGH
+
+### IaC templates
+1. Virtual machine has port TCP 22 (SSH) open. Severity HIGH
+2. Virtual machine has port TCP 3389 (RDP) open. Severity HIGH
+3. Resource exposes a plaintext password. Severity CRITICAL
+4. Virtual machine uses a weak password. Severity HIGH
+5. Virtual machine does not have encryption enabled. Severity MEDIUM
+6. Users with access to Virtual Machine do not have multi-factor authentication (MFA) enabled. Severity HIGH
+7. Storage account does not have encryption enabled. Severity HIGH
+8. Storage account use Locally Redundant Storage (LRS). Severity MEDIUM
+9. Database has an open insecure port. Severity HIGH
+10. Database has a weak password. Severity HIGH
+11. Database does not have encryption enabled. Severity MEDIUM
+12. Database does not have multi-factor authentication (MFA) enabled. Severity HIGH
 
 ## License
 
