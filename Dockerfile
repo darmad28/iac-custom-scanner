@@ -1,17 +1,17 @@
-# Usamos una imagen base de Python
-FROM python:3.11-slim
+# Python base image
+FROM python:3.13-slim
 
-# Configuración del directorio de trabajo
+# Set the working directory
 WORKDIR /app
 
-# Copiar los archivos de la aplicación
+# Copy application files
 COPY . /app/
 
-# Instalar las dependencias
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Exponer el puerto en el que la app escuchará
+# Expose the port the app will listen on
 EXPOSE 8080
 
-# Comando para iniciar la aplicación
+# Command to start the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
