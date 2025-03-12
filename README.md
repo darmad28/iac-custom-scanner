@@ -81,6 +81,7 @@ gcloud services enable run.googleapis.com \
 gcloud auth login
 gcloud config set project [PROJECT_ID]
 ```
+Replace [PROJECT_ID] with your GCP project ID
 ### Deployment Steps
 
 #### Create Artifact Registry (if you don't have one)
@@ -109,7 +110,7 @@ deploy the application to Cloud Run, use the following command:
 
 ```
 gcloud run deploy iac-custom-scanner \
-  --[REGION]-docker.pkg.dev/[PROJECT_ID]/[REPO_NAME]/iac-custom-scanner:v1 \
+  --image [REGION]-docker.pkg.dev/[PROJECT_ID]/[REPO_NAME]/iac-custom-scanner:v1 \
   --platform managed \
   --region [REGION] \
   --no-allow-unauthenticated
@@ -169,24 +170,24 @@ If you receive a 403 Forbidden error, it means the user does not have the approp
 
 ## ANNEX: Security Policies
 ### Kubernetes manifest
-1. Using 'default' namespace. Severity MEDIUM
-2. Secret exposed in environment variable. Severity CRITICAL
-3. Storage bucket publicly exposed. Severity HIGH
-4. Container running with elevated privileges or as root. Severity HIGH
+1. Using 'default' namespace. Severity **MEDIUM**
+2. Secret exposed in environment variable. Severity **CRITICAL**
+3. Storage bucket publicly exposed. Severity **HIGH**
+4. Container running with elevated privileges or as root. Severity **HIGH**
 
 ### IaC templates
-1. Virtual machine has port TCP 22 (SSH) open. Severity HIGH
-2. Virtual machine has port TCP 3389 (RDP) open. Severity HIGH
-3. Resource exposes a plaintext password. Severity CRITICAL
-4. Virtual machine uses a weak password. Severity HIGH
-5. Virtual machine does not have encryption enabled. Severity MEDIUM
-6. Users with access to Virtual Machine do not have multi-factor authentication (MFA) enabled. Severity HIGH
-7. Storage account does not have encryption enabled. Severity HIGH
-8. Storage account use Locally Redundant Storage (LRS). Severity MEDIUM
-9. Database has an open insecure port. Severity HIGH
-10. Database has a weak password. Severity HIGH
-11. Database does not have encryption enabled. Severity MEDIUM
-12. Database does not have multi-factor authentication (MFA) enabled. Severity HIGH
+1. Virtual machine has port TCP 22 (SSH) open. Severity **HIGH**
+2. Virtual machine has port TCP 3389 (RDP) open. Severity **HIGH**
+3. Resource exposes a plaintext password. Severity **CRITICAL**
+4. Virtual machine uses a weak password. Severity **HIGH**
+5. Virtual machine does not have encryption enabled. Severity **MEDIUM**
+6. Users with access to Virtual Machine do not have multi-factor authentication (MFA) enabled. Severity **HIGH**
+7. Storage account does not have encryption enabled. Severity **HIGH**
+8. Storage account use Locally Redundant Storage (LRS). Severity **MEDIUM**
+9. Database has an open insecure port. Severity **HIGH**
+10. Database has a weak password. Severity **HIGH**
+11. Database does not have encryption enabled. Severity **MEDIUM**
+12. Database does not have multi-factor authentication (MFA) enabled. Severity **HIGH**
 
 ## License
 
