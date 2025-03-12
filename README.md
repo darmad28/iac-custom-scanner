@@ -10,6 +10,42 @@ Identifies potential security risks in IaC resources.
 
 Provides remediation recommendations following CIS best practices.
 
+## Limitations
+
+Currently, this application is designed to scan only JSON files that contain either Kubernetes manifests or Infrastructure as Code (IaC) definitions. The JSON structures must comply with the predefined models in the code:
+
+### Kubernetes Resource Model
+```
+class KubernetesResourceModel(BaseModel):
+    apiVersion: str
+    kind: str
+    metadata: dict
+    spec: dict
+```
+
+### Infrastructure as Code (IaC) Resource Model
+```
+class IaCResourceModel(BaseModel):
+    type: str
+    name: str
+    open_ports: Optional[List[int]] = []
+    password: Optional[str] = None
+    encryption: Optional[bool] = None
+    mfa_enabled: Optional[bool] = None
+    azure_specific: Optional[dict] = None
+```
+
+### File Size and JSON Depth Restrictions
+To ensure performance and prevent excessive resource consumption:
+* The maximum allowed file size is 2MB. 
+* The JSON structure is limited to a maximum nesting depth of 10 levels.
+### Invalid Format Handling
+* If the input file is not in JSON format, the application will return an "Invalid Format" error.
+* If the JSON file does not match one of the expected structures above, it will also result in an "Invalid Format" error.
+* If the file exceeds 2MB or the JSON exceeds 10 levels of nesting, the request will be rejected.
+
+Support for additional resource types and formats may be added in future updates.
+
 ## Installation
 
 ### Requirements
